@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:math';
 
 void main() {
@@ -30,26 +31,43 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
+class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   bool _isFound = false;
-  late AnimationController _controller;
   Random _random = Random();
+
+  // Variables to store positions of objects
+  late double _pumpkinTop, _pumpkinLeft;
+  late double _ghostTop, _ghostLeft;
+  late double _batTop, _batLeft;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+
+    // Initial random positions for items
+    _pumpkinTop = _randomPosition(300);
+    _pumpkinLeft = _randomPosition(300);
+    _ghostTop = _randomPosition(300);
+    _ghostLeft = _randomPosition(300);
+    _batTop = _randomPosition(300);
+    _batLeft = _randomPosition(300);
+
+    // Start the movement of objects by updating their positions every 2 seconds
+    Timer.periodic(const Duration(seconds: 2), (timer) {
+      setState(() {
+        _pumpkinTop = _randomPosition(MediaQuery.of(context).size.height - 100);
+        _pumpkinLeft = _randomPosition(MediaQuery.of(context).size.width - 100);
+        _ghostTop = _randomPosition(MediaQuery.of(context).size.height - 100);
+        _ghostLeft = _randomPosition(MediaQuery.of(context).size.width - 100);
+        _batTop = _randomPosition(MediaQuery.of(context).size.height - 100);
+        _batLeft = _randomPosition(MediaQuery.of(context).size.width - 100);
+      });
+    });
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  // Generate random positions for floating objects
+  double _randomPosition(double max) => _random.nextDouble() * max;
 
   // Function to display winning message
   void _showWinMessage() {
@@ -76,10 +94,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     );
   }
 
-  // Generate random positions for floating objects
-  double _randomPosition(double max) => _random.nextDouble() * max;
-
-  // Method to increase the counter
+  // Method to increase the counter when traps are clicked
   void _incrementCounter() {
     setState(() {
       _counter++;
@@ -95,10 +110,14 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
       ),
       body: Stack(
         children: [
-          // Halloween-themed objects floating
-          _buildFloatingObject('🎃', _showWinMessage, _randomPosition(350), _randomPosition(500)),
-          _buildFloatingObject('👻', _incrementCounter, _randomPosition(200), _randomPosition(300)),
-          _buildFloatingObject('🦇', _incrementCounter, _randomPosition(100), _randomPosition(150)),
+          // Floating pumpkin (correct item)
+          _buildMovingObject('🎃', _showWinMessage, _pumpkinTop, _pumpkinLeft),
+
+          // Floating ghost (trap)
+          _buildMovingObject('👻', _incrementCounter, _ghostTop, _ghostLeft),
+
+          // Floating bat (trap)
+          _buildMovingObject('🦇', _incrementCounter, _batTop, _batLeft),
 
           // Centered counter message
           Center(
@@ -107,10 +126,14 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
               children: <Widget>[
                 const Text(
                   'You have triggered the traps this many times:',
+                  style: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
                 ),
                 Text(
                   '$_counter',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineMedium!
+                      .copyWith(color: const Color.fromARGB(255, 0, 0, 0)),
                 ),
               ],
             ),
@@ -121,28 +144,23 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         onPressed: _incrementCounter,
         tooltip: 'Increment',
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 
-  // Build floating animated objects (Pumpkin, Ghost, Bat)
-  Widget _buildFloatingObject(String emoji, Function onTapCallback, double startTop, double startLeft) {
-    return Positioned(
-      top: startTop,
-      left: startLeft,
+  // Build the moving Halloween-themed objects (Pumpkin, Ghost, Bat)
+  Widget _buildMovingObject(
+      String emoji, Function onTapCallback, double top, double left) {
+    return AnimatedPositioned(
+      duration: const Duration(seconds: 2),
+      curve: Curves.easeInOut,
+      top: top,
+      left: left,
       child: GestureDetector(
         onTap: () => onTapCallback(),
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(0, sin(_controller.value * 2 * pi) * 20),
-              child: Text(
-                emoji,
-                style: const TextStyle(fontSize: 50),
-              ),
-            );
-          },
+        child: Text(
+          emoji,
+          style: const TextStyle(fontSize: 50),
         ),
       ),
     );
