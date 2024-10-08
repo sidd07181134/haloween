@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'dart:async';
 import 'dart:math';
 
@@ -36,7 +37,8 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isFound = false;
   Random _random = Random();
 
-  // Variables to store positions of objects
+  // Variables for audio
+  final AudioPlayer _audioPlayer = AudioPlayer();
   late double _pumpkinTop, _pumpkinLeft;
   late double _ghostTop, _ghostLeft;
   late double _batTop, _batLeft;
@@ -44,6 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _playBackgroundMusic();
 
     // Initial random positions for items
     _pumpkinTop = _randomPosition(300);
@@ -69,11 +72,19 @@ class _MyHomePageState extends State<MyHomePage> {
   // Generate random positions for floating objects
   double _randomPosition(double max) => _random.nextDouble() * max;
 
+  // Play background music
+  void _playBackgroundMusic() async {
+    await _audioPlayer.setSource(AssetSource('assets/sound/spooky_background.mp3'));
+    _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    _audioPlayer.play(AssetSource('assets/sound/spooky_background.mp3'));
+  }
+
   // Function to display winning message
   void _showWinMessage() {
     setState(() {
       _isFound = true;
     });
+    _audioPlayer.play(AssetSource('assets/sound/success.mp3'));
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -99,6 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _counter++;
     });
+    _audioPlayer.play(AssetSource('assets/sound/jump_scare.mp3'));
   }
 
   @override
@@ -110,14 +122,22 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Stack(
         children: [
+          // Background image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/bg.webp',
+              fit: BoxFit.cover,
+            ),
+          ),
+
           // Floating pumpkin (correct item)
-          _buildMovingObject('🎃', _showWinMessage, _pumpkinTop, _pumpkinLeft),
+          _buildMovingObject('assets/images/pumpkin.webp', _showWinMessage, _pumpkinTop, _pumpkinLeft),
 
           // Floating ghost (trap)
-          _buildMovingObject('👻', _incrementCounter, _ghostTop, _ghostLeft),
+          _buildMovingObject('assets/images/ghost.webp', _incrementCounter, _ghostTop, _ghostLeft),
 
           // Floating bat (trap)
-          _buildMovingObject('🦇', _incrementCounter, _batTop, _batLeft),
+          _buildMovingObject('assets/images/bat1.png', _incrementCounter, _batTop, _batLeft),
 
           // Centered counter message
           Center(
@@ -126,14 +146,14 @@ class _MyHomePageState extends State<MyHomePage> {
               children: <Widget>[
                 const Text(
                   'You have triggered the traps this many times:',
-                  style: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                  style: TextStyle(color: Colors.white),
                 ),
                 Text(
                   '$_counter',
                   style: Theme.of(context)
                       .textTheme
                       .headlineMedium!
-                      .copyWith(color: const Color.fromARGB(255, 0, 0, 0)),
+                      .copyWith(color: Colors.white),
                 ),
               ],
             ),
@@ -149,8 +169,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // Build the moving Halloween-themed objects (Pumpkin, Ghost, Bat)
-  Widget _buildMovingObject(
-      String emoji, Function onTapCallback, double top, double left) {
+  Widget _buildMovingObject(String imagePath, Function onTapCallback, double top, double left) {
     return AnimatedPositioned(
       duration: const Duration(seconds: 2),
       curve: Curves.easeInOut,
@@ -158,9 +177,10 @@ class _MyHomePageState extends State<MyHomePage> {
       left: left,
       child: GestureDetector(
         onTap: () => onTapCallback(),
-        child: Text(
-          emoji,
-          style: const TextStyle(fontSize: 50),
+        child: Image.asset(
+          imagePath,
+          width: 100,
+          height: 100,
         ),
       ),
     );
